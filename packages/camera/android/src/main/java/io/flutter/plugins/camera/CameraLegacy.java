@@ -141,7 +141,7 @@ public class CameraLegacy implements io.flutter.plugins.camera.Camera {
         mediaRecorder.setVideoFrameRate(recordingProfile.videoFrameRate);
         mediaRecorder.setVideoSize(recordingProfile.videoFrameWidth, recordingProfile.videoFrameHeight);
         mediaRecorder.setOutputFile(outputFilePath);
-        mediaRecorder.setOrientationHint(getMediaOrientation());
+        mediaRecorder.setOrientationHint(sensorOrientation);
 
         mediaRecorder.prepare();
     }
@@ -206,14 +206,14 @@ public class CameraLegacy implements io.flutter.plugins.camera.Camera {
                     try {
                         Bitmap originalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
                         Matrix matrix = new Matrix();
-                        if (isFrontFacing) {
+                        if ((sensorOrientation == 270 || sensorOrientation == 90) && isFrontFacing) {
+                            matrix.setRotate(180 - sensorOrientation);
                             matrix.preScale(-1, 1);
-                            matrix.postRotate(getMediaOrientation() - 180);
                         } else {
-                            matrix.postRotate(getMediaOrientation());
+                            matrix.setRotate(sensorOrientation);
                         }
                         Bitmap rotatedBitmap = Bitmap.createBitmap(originalImage, 0, 0, originalImage.getWidth(), originalImage.getHeight(),
-                                matrix, false);
+                                matrix, true);
                         fileOutputStream = new FileOutputStream(file);
                         rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
                         result.success(null);
@@ -366,15 +366,7 @@ public class CameraLegacy implements io.flutter.plugins.camera.Camera {
         orientationEventListener.disable();
     }
 
-    private int getMediaOrientation() {
-        final int sensorOrientationOffset =
-                (currentOrientation == ORIENTATION_UNKNOWN)
-                        ? 0
-                        : (isFrontFacing) ? -currentOrientation : currentOrientation;
-        return (sensorOrientationOffset + sensorOrientation + 360) % 360;
-    }
-
-    private int getYUVByteSize(int width, int height){
+    private int getYUVByteSize(int width, int height) {
         int ySize = width * height;
         int uvSize = (width + 1) / 2 * ((height + 1) / 2) * 2;
         return ySize + uvSize;
